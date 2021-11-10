@@ -12,6 +12,7 @@ from rasa.shared.constants import (
     DOCS_URL_ACTIONS,
     REQUIRED_SLOTS_KEY,
 )
+from rasa.shared.core import constants
 from rasa.shared.core.constants import MAPPING_CONDITIONS, ACTIVE_LOOP
 from rasa.shared.core.domain import Domain
 from rasa.shared.core.events import ActionExecuted, ActiveLoop
@@ -64,9 +65,14 @@ class Validator:
 
         nlu_data_intents = {e.data["intent"] for e in self.intents.intent_examples}
 
-        for intent in self.domain.intents:
+        # Exclude the default intents that are always implicitly present
+        for intent in [
+            item
+            for item in self.domain.intents
+            if item not in constants.DEFAULT_INTENTS
+        ]:
             if intent not in nlu_data_intents:
-                logger.debug(
+                rasa.shared.utils.io.raise_warning(
                     f"The intent '{intent}' is listed in the domain file, but "
                     f"is not found in the NLU training data."
                 )
@@ -134,9 +140,16 @@ class Validator:
                 )
                 everything_is_alright = False
 
-        for intent in self.domain.intents:
+        # Exclude the default intents that are always implicitly present
+        for intent in [
+            item
+            for item in self.domain.intents
+            if item not in constants.DEFAULT_INTENTS
+        ]:
             if intent not in stories_intents:
-                logger.debug(f"The intent '{intent}' is not used in any story.")
+                rasa.shared.utils.io.raise_warning(
+                    f"The intent '{intent}' is not used in any story or rule."
+                )
                 everything_is_alright = ignore_warnings and everything_is_alright
 
         return everything_is_alright
@@ -195,7 +208,9 @@ class Validator:
 
         for utterance in utterance_actions:
             if utterance not in stories_utterances:
-                logger.debug(f"The utterance '{utterance}' is not used in any story.")
+                rasa.shared.utils.io.raise_warning(
+                    f"The utterance '{utterance}' is not used in any story or rule."
+                )
                 everything_is_alright = ignore_warnings and everything_is_alright
 
         return everything_is_alright

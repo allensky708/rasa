@@ -213,6 +213,63 @@ def test_verify_there_is_example_repetition_in_intents(nlu_data_path: Text):
     assert not validator.verify_example_repetition_in_intents(False)
 
 
+def test_verify_logging_message_for_intent_not_used_in_nlu(caplog, nlu_data_path: Text):
+    importer = RasaFileImporter(
+        domain_path="data/test_validation/domain.yml",
+        training_data_paths=["data/test_validation/data/nlu.yml"],
+    )
+    validator = Validator.from_importer(importer)
+    caplog.clear()
+    with pytest.warns(UserWarning) as record:
+        validator.verify_intents(False)
+
+    assert (
+        "The intent 'goodbye' is listed in the domain file, "
+        "but is not found in the NLU training data."
+        in (m.message.args[0] for m in record)
+    )
+
+
+def test_verify_logging_message_for_intent_not_used_in_story(
+    caplog, nlu_data_path: Text
+):
+    importer = RasaFileImporter(
+        domain_path="data/test_validation/domain.yml",
+        training_data_paths=[
+            "data/test_validation/data/nlu.yml",
+            "data/test_validation/data/stories.yml",
+        ],
+    )
+    validator = Validator.from_importer(importer)
+    caplog.clear()
+    with pytest.warns(UserWarning) as record:
+        validator.verify_intents_in_stories(False)
+
+    assert "The intent 'goodbye' is not used in any story or rule." in (
+        m.message.args[0] for m in record
+    )
+
+
+def test_verify_logging_message_for_unused_utterance(caplog, nlu_data_path: Text):
+    importer = RasaFileImporter(
+        domain_path="data/test_validation/domain.yml",
+        training_data_paths=[
+            "data/test_validation/data/nlu.yml",
+            "data/test_validation/data/stories.yml",
+        ],
+    )
+    validator = Validator.from_importer(importer)
+    caplog.clear()
+    with pytest.warns(UserWarning) as record:
+        validator.verify_utterances_in_stories(False)
+
+    for m in record:
+        print(m)
+    assert "The utterance 'utter_chatter' is not used in any story or rule." in (
+        m.message.args[0] for m in record
+    )
+
+
 def test_verify_logging_message_for_repetition_in_intents(caplog, nlu_data_path: Text):
     # moodbot nlu data already has duplicated example 'good afternoon'
     # for intents greet and goodbye
